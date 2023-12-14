@@ -106,10 +106,65 @@ window.onload = function () {
     fabyImage.onload = updatePlayer
   }
 
+  // Add obstacles
+  function obstacles() {
+    let obstaclesArray = [];
+    let obstaclesPositionX = 801;
+
+    const obstacleTop = new Image();
+    obstacleTop.src = '../images/obstacle_top.png';
+
+    const obstacleBottom = new Image();
+    obstacleBottom.src = '../images/obstacle_bottom.png';
+
+    obstacleBottom.width = 100;
+    obstacleTop.width = 100;
+
+    function createObstacles() {
+      for (let i = 0; i < 5; i++) {
+        obstacleTop.height = Math.floor(Math.random() * (252 - 120)) + 120 - 25;
+        obstacleBottom.height = Math.floor(Math.random() * (252 - 120)) + 120 - 25;
+        obstaclesPositionX += Math.floor(Math.random() * (300 - 250)) + 250;
+
+        obstaclesArray.push({
+          i: i,
+          x: obstaclesPositionX,
+          top: obstacleTop.height,
+          bottom: obstacleBottom.height,
+          imgTop: obstacleTop,
+          imgBottom: obstacleBottom,
+        });
+      };
+    }
+
+    function draw() {
+      if (!(obstaclesArray.length === 5)) {
+        createObstacles();
+      } else if (obstaclesArray[4].x < -100) {
+        obstaclesArray = [];
+        obstaclesPositionX = 601;
+        createObstacles();
+      }
+
+      obstaclesArray.forEach(obstacle => {
+        obstacle.x -= 1;
+        context.drawImage(obstacle.imgTop, obstacle.x, 0, 100, obstacle.top);
+        context.drawImage(obstacle.imgBottom, obstacle.x, 504 - obstacle.bottom, 100, obstacle.bottom);
+      })
+    }
+
+    function updateObstacles() {
+      draw();
+      requestAnimationFrame(updateObstacles);
+    }
+
+    obstacleBottom.onload = updateObstacles;
+  }
 
   function startGame() {
     buttonStart.setAttribute('disabled', true);
     crateBackgroundCanvas();
     createPlayer();
+    obstacles();
   }
 };
