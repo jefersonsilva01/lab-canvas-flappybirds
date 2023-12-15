@@ -7,6 +7,14 @@ window.onload = function () {
   const context = canvas.getContext('2d');
 
   const buttonStart = document.getElementById("start-button");
+  let obstaclesArray = [],
+    points = 0,
+    playerPositionX,
+    playerPositionY,
+    animateBg,
+    animatePlayer,
+    animateObstacles,
+    animateScore
 
   // Animation background
   function crateBackgroundCanvas() {
@@ -43,7 +51,7 @@ window.onload = function () {
       context.clearRect(0, 0, canvas.width, canvas.height);
       backgroundImage.draw();
 
-      requestAnimationFrame(updateCanvas);
+      animateBg = requestAnimationFrame(updateCanvas);
     }
 
     bgImage.onload = updateCanvas;
@@ -65,6 +73,8 @@ window.onload = function () {
 
       update: function () {
         context.drawImage(this.fabyImg, this.width, this.height, 49, 32);
+        playerPositionX = this.width;
+        playerPositionY = Math.round(this.height);
       },
 
       newPos: function () {
@@ -100,7 +110,7 @@ window.onload = function () {
       faby.update();
       faby.newPos();
 
-      requestAnimationFrame(updatePlayer);
+      animatePlayer = requestAnimationFrame(updatePlayer);
     }
 
     fabyImage.onload = updatePlayer
@@ -108,29 +118,31 @@ window.onload = function () {
 
   // Add obstacles
   function obstacles() {
-    let obstaclesArray = [];
-    let obstaclesPositionX = 801;
-
     const obstacleTop = new Image();
     obstacleTop.src = '../images/obstacle_top.png';
 
     const obstacleBottom = new Image();
     obstacleBottom.src = '../images/obstacle_bottom.png';
 
-    obstacleBottom.width = 100;
-    obstacleTop.width = 100;
+    let obstaclesPositionX = 801;
 
     function createObstacles() {
       for (let i = 0; i < 5; i++) {
-        obstacleTop.height = Math.floor(Math.random() * (252 - 120)) + 120 - 25;
-        obstacleBottom.height = Math.floor(Math.random() * (252 - 120)) + 120 - 25;
+        let obstaclesTopPositionY = Math.floor(Math.random() * (-480 - -650) + -650)
+
+        let obstaclesBottomPositionY = obstaclesTopPositionY + obstacleTop.height + Math.floor(Math.random() * (192 - 96) + 96);
+        // let obstaclesBottomPositionY = Math.floor(Math.random() * (500 - 350) + 350) - 96;
+
+        // obstacleTop.height = Math.floor(Math.random() * (384 - 120)) + 120 - 96;
+        // obstacleBottom.height = 502 - obstacleTop.height - 96;
+        // obstacleBottom.height = Math.floor(Math.random() * (252 - 120)) + 120 - 25;
         obstaclesPositionX += Math.floor(Math.random() * (300 - 250)) + 250;
 
         obstaclesArray.push({
           i: i,
           x: obstaclesPositionX,
-          top: obstacleTop.height,
-          bottom: obstacleBottom.height,
+          top: obstaclesTopPositionY,
+          bottom: obstaclesBottomPositionY,
           imgTop: obstacleTop,
           imgBottom: obstacleBottom,
         });
@@ -140,7 +152,7 @@ window.onload = function () {
     function draw() {
       if (!(obstaclesArray.length === 5)) {
         createObstacles();
-      } else if (obstaclesArray[4].x < -100) {
+      } else if (obstaclesArray[4].x < -120) {
         obstaclesArray = [];
         obstaclesPositionX = 601;
         createObstacles();
@@ -148,23 +160,77 @@ window.onload = function () {
 
       obstaclesArray.forEach(obstacle => {
         obstacle.x -= 1;
-        context.drawImage(obstacle.imgTop, obstacle.x, 0, 100, obstacle.top);
-        context.drawImage(obstacle.imgBottom, obstacle.x, 504 - obstacle.bottom, 100, obstacle.bottom);
+        context.drawImage(obstacle.imgTop, obstacle.x, obstacle.top);
+        context.drawImage(obstacle.imgBottom, obstacle.x, obstacle.bottom);
       })
+    }
+
+    function scoreGame() {
+      points++;
+      context.font = 'bold 25pt Arial'
+      context.fillStyle = '#fff';
+      context.fillText(`Score: ${points}`, 50, 50);
     }
 
     function updateObstacles() {
       draw();
-      requestAnimationFrame(updateObstacles);
+      scoreGame();
+      animateObstacles = requestAnimationFrame(updateObstacles);
     }
 
     obstacleBottom.onload = updateObstacles;
   }
 
+  // Draw points endgame
+  function drawPoints() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    const bgImage = new Image();
+    bgImage.src = '../images/bg.png'
+    function draw() {
+      context.drawImage(bgImage, 0, 0);
+    }
+
+    bgImage.onload = draw;
+
+    setTimeout(() => {
+      context.font = 'bold 35pt Arial'
+      context.fillStyle = '#fff';
+      context.fillText(`GAME OVER, Your score: ${points}`, 150, 150);
+    }, 500)
+  }
+
+  // Stop game
+  function stopGame() {
+    cancelAnimationFrame(animateBg);
+    cancelAnimationFrame(animatePlayer);
+    cancelAnimationFrame(animateObstacles);
+    cancelAnimationFrame(animateScore);
+    drawPoints();
+    buttonStart.removeAttribute('disabled');
+    obstaclesArray = [];
+  }
+
+  // Check if colision
+  function checkIfColision(idCheckColision) {
+    obstaclesArray.forEach(obstacles => {
+      if (playerPositionX === obstacles.x && (playerPositionY + 15 <= obstacles.top + 793 || playerPositionY + 15 >= obstacles.bottom)) {
+        clearInterval(idCheckColision);
+        stopGame()
+      } else if (playerPositionY < 0 || playerPositionY > canvas.height) {
+        clearInterval(idCheckColision);
+        stopGame()
+      }
+    })
+  }
+
   function startGame() {
-    buttonStart.setAttribute('disabled', true);
+    context.reset();
     crateBackgroundCanvas();
-    createPlayer();
     obstacles();
+    createPlayer();
+    const idCheckColision = setInterval(() => {
+      checkIfColision(idCheckColision);
+    }, 10);
+    buttonStart.setAttribute('disabled', true);
   }
 };
